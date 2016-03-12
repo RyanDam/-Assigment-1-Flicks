@@ -15,7 +15,7 @@ enum MainLayout {
     case Grid
 }
 
-class MoviesCollectionViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate, UITableViewDataSource, UITableViewDelegate {
+class MoviesCollectionViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate, UITableViewDataSource, UITableViewDelegate, UISearchBarDelegate, UIScrollViewDelegate {
     
     var dataModeString: String = "now_playing"
     
@@ -30,20 +30,29 @@ class MoviesCollectionViewController: UIViewController, UICollectionViewDataSour
     let refreshControlCollection = UIRefreshControl()
     let refreshControlTable = UIRefreshControl()
     
-
+    let segmentControl = UISegmentedControl(items: ["List", "Gird"])
+    let searchBar = UISearchBar()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
         errorView.hidden = true
         collectionView.hidden = true
         
-        let items = ["List", "Gird"]
-        
-        let segmentControl = UISegmentedControl(items: items)
         segmentControl.tintColor = UIColor.orangeColor()
         segmentControl.selectedSegmentIndex = 0
         segmentControl.addTarget(self, action: "onSegmentIndexChange:", forControlEvents: .ValueChanged);
         self.navigationItem.titleView = segmentControl
+        
+        searchBar.placeholder = "Search"
+//        searchBar.showsCancelButton = true
+        searchBar.delegate = self
+        searchBar.tintColor = UIColor.orangeColor()
+//        self.navigationItem.titleView = searchBar
+        
+        self.navigationItem.rightBarButtonItem?.tintColor = UIColor.orangeColor()
+        
+        
         
         refreshControlCollection.addTarget(self, action: "refreshControlAction:", forControlEvents: UIControlEvents.ValueChanged)
         collectionView.insertSubview(refreshControlCollection, atIndex: 0)
@@ -55,6 +64,7 @@ class MoviesCollectionViewController: UIViewController, UICollectionViewDataSour
         collectionView.dataSource = self
         tableView.delegate = self
         tableView.dataSource = self
+        
         fetchPosts(fetchPostOK) { (err) -> Void in
             print(err)
             self.showErrorIndicator()
@@ -79,18 +89,30 @@ class MoviesCollectionViewController: UIViewController, UICollectionViewDataSour
     // MARK: Navigator
     
     override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
-        
-        if segue.identifier == "CollectionCellSelection" {
-            let pressedCell = sender as! MovieCollectionCell
-            let targetDetailView = segue.destinationViewController as! MovieDetailViewController
-            targetDetailView.dataDictionary = dataDictionary
-            targetDetailView.cellRow = pressedCell.rowIndex
+        let targetDetailView = segue.destinationViewController as! MovieDetailViewController
+        if isSearching {
+            if !tableView.hidden {
+                let index = tableView.indexPathForCell(sender as! MovieTableCell)
+                targetDetailView.data = fillterData[(index?.row)!]
+            }
+            else {
+                let index = collectionView.indexPathForCell(sender as! MovieCollectionCell)
+                targetDetailView.data = fillterData[(index?.row)!]
+            }
         }
-        else if segue.identifier == "TableCellSelection" {
-            let pressedCell = sender as! MovieTableCell
-            let targetDetailView = segue.destinationViewController as! MovieDetailViewController
-            targetDetailView.dataDictionary = dataDictionary
-            targetDetailView.cellRow = pressedCell.rowIndex
+        else {
+            if let data = dataDictionary {
+                var index = 0
+                if segue.identifier == "CollectionCellSelection" {
+                    index = (collectionView.indexPathForCell(sender as! MovieCollectionCell)?.row)!
+                    
+                }
+                else if segue.identifier == "TableCellSelection" {
+                    index = (tableView.indexPathForCell(sender as! MovieTableCell)?.row)!
+                }
+                let tempItem = FillterItem(title: Utils.getFilmTitle(data, row: index), description: Utils.getFilmDescription(data, row: index), imageUrl: Utils.getFilmImageUrl(data, row: index, qualityMode: .Medium), populer: Utils.getFilmPopular(data, row: index), rating: Utils.getFilmRating(data, row: index))
+                targetDetailView.data = tempItem
+            }
         }
         
     }
@@ -98,14 +120,20 @@ class MoviesCollectionViewController: UIViewController, UICollectionViewDataSour
     // MARK: Collection data source
     
     func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        if let data = dataDictionary {
+        if isSearching {
+            return fillterData.count
+        }
+        else if let data = dataDictionary {
             return (data["results"]?.count)!
         }
         return 0
     }
     
     func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        if let data = dataDictionary {
+        if isSearching {
+            return fillterData.count
+        }
+        else if let data = dataDictionary {
             return (data["results"]?.count)!
         }
         return 0
@@ -114,12 +142,18 @@ class MoviesCollectionViewController: UIViewController, UICollectionViewDataSour
     // The cell that is returned must be retrieved from a call to -dequeueReusableCellWithReuseIdentifier:forIndexPath:
     func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCellWithReuseIdentifier("MovieCollectionCell", forIndexPath: indexPath) as! MovieCollectionCell
+        if isSearching {
+            cell.titleLabel.text = fillterData[indexPath.row].title
+            cell.descriptionLabel.text = fillterData[indexPath.row].description
+            cell.thumbnailImage.setImageWithURL(NSURL(string: fillterData[indexPath.row].imageUrl)!, placeholderImage: UIImage(named: "defaultCardImage"))
+        }
+        else {
+            cell.titleLabel.text = Utils.getFilmTitle(dataDictionary, row: indexPath.row)
+            cell.descriptionLabel.text = Utils.getFilmDescription(dataDictionary, row: indexPath.row)
+            cell.thumbnailImage.setImageWithURL(NSURL(string: Utils.getFilmImageUrl(dataDictionary, row: indexPath.row, qualityMode: .Medium))!, placeholderImage: UIImage(named: "defaultCardImage"))
+        }
         
         cell.rowIndex = indexPath.row
-        cell.titleLabel.text = Utils.getFilmTitle(dataDictionary, row: indexPath.row)
-        cell.descriptionLabel.text = Utils.getFilmDescription(dataDictionary, row: indexPath.row)
-        cell.thumbnailImage.setImageWithURL(NSURL(string: Utils.getFilmImageUrl(dataDictionary, row: indexPath.row, qualityMode: .Medium))!, placeholderImage: UIImage(named: "defaultCardImage"))
-        
         cell.layer.cornerRadius = 6
         
         return cell
@@ -127,13 +161,18 @@ class MoviesCollectionViewController: UIViewController, UICollectionViewDataSour
     
     func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCellWithIdentifier("PhotoCell", forIndexPath: indexPath) as! MovieTableCell
+        if isSearching {
+            cell.titleLabel.text = fillterData[indexPath.row].title
+            cell.descriptionLabel.text = fillterData[indexPath.row].description
+            cell.thumbnailImage.setImageWithURL(NSURL(string: fillterData[indexPath.row].imageUrl)!, placeholderImage: UIImage(named: "defaultCardImage"))
+        }
+        else {
+            cell.titleLabel.text = Utils.getFilmTitle(dataDictionary, row: indexPath.row)
+            cell.descriptionLabel.text = Utils.getFilmDescription(dataDictionary, row: indexPath.row)
+            cell.thumbnailImage.setImageWithURL(NSURL(string: Utils.getFilmImageUrl(dataDictionary, row: indexPath.row, qualityMode: .Medium))!, placeholderImage: UIImage(named: "defaultCardImage"))
+        }
         
         cell.rowIndex = indexPath.row
-        cell.titleLabel.text = Utils.getFilmTitle(dataDictionary, row: indexPath.row)
-        cell.descriptionLabel.text = Utils.getFilmDescription(dataDictionary, row: indexPath.row)
-        cell.thumbnailImage.setImageWithURL(NSURL(string: Utils.getFilmImageUrl(dataDictionary, row: indexPath.row, qualityMode: .Medium))!, placeholderImage: UIImage(named: "defaultCardImage"))
-        
-//        cell.layer.cornerRadius = 8
         
         return cell
         
@@ -149,6 +188,12 @@ class MoviesCollectionViewController: UIViewController, UICollectionViewDataSour
     // MARK: Networking
     
     func fetchPosts(successCallback: (NSDictionary) -> Void, errorCallback: ((NSError?) -> Void)?) {
+        
+        if Utils.isConnectedToNetwork() == false {
+            showErrorIndicator()
+            return
+        }
+        
         let clientId = "a07e22bc18f5cb106bfe4cc1f83ad8ed"
         let url = NSURL(string:"https://api.themoviedb.org/3/movie/\(dataModeString)?api_key=\(clientId)")
         let request = NSURLRequest(URL: url!)
@@ -199,7 +244,7 @@ class MoviesCollectionViewController: UIViewController, UICollectionViewDataSour
     }
     
     func showErrorIndicator() {
-        SwiftLoader.hide()
+        hideWatingIndicate()
         errorView.hidden = false
     }
     
@@ -233,6 +278,43 @@ class MoviesCollectionViewController: UIViewController, UICollectionViewDataSour
             break
         default: break
             // nothing :)
+        }
+    }
+    
+    // MARK: Search bar handler
+    
+    var isSearching = false
+    
+    var fillterData: [FillterItem] = []
+    
+    func searchBar(searchBar: UISearchBar, textDidChange searchText: String) {
+        fillterData.removeAll()
+        if let data = dataDictionary {
+            for i in 0..<(data["results"]?.count)! {
+                let title = Utils.getFilmTitle(dataDictionary, row: i)
+                if title.lowercaseString.containsString(searchText.lowercaseString) {
+                    let tempItem = FillterItem(title: title, description: Utils.getFilmDescription(data, row: i), imageUrl: Utils.getFilmImageUrl(data, row: i, qualityMode: .Medium), populer: Utils.getFilmPopular(data, row: i), rating: Utils.getFilmRating(data, row: i))
+                    fillterData.insert(tempItem, atIndex: 0)
+                }
+            }
+        }
+        collectionView.reloadData()
+        tableView.reloadData()
+    }
+    
+    @IBAction func searchButtonClick(sender: UIBarButtonItem) {
+        if isSearching {
+            isSearching = false
+            searchBar.endEditing(true)
+            searchBar.text = ""
+            self.navigationItem.titleView = segmentControl
+            collectionView.reloadData()
+            tableView.reloadData()
+        }
+        else {
+            isSearching = true
+            self.navigationItem.titleView = searchBar
+            searchBar.becomeFirstResponder()
         }
     }
     

@@ -9,7 +9,7 @@
 import UIKit
 import AFNetworking
 
-class MovieDetailViewController: UIViewController {
+class MovieDetailViewController: UIViewController, UIScrollViewDelegate {
     @IBOutlet weak var scrollview: UIScrollView!
     @IBOutlet weak var infoView: UIView!
     @IBOutlet weak var backdropImage: UIImageView!
@@ -18,8 +18,7 @@ class MovieDetailViewController: UIViewController {
     @IBOutlet weak var movieRating: UILabel!
     @IBOutlet weak var moviePopuler: UILabel!
     
-    var dataDictionary: NSDictionary?
-    var cellRow: Int = -1
+    var data: FillterItem? = FillterItem()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -27,16 +26,15 @@ class MovieDetailViewController: UIViewController {
             infoView.frame.origin.y + infoView.frame.size.height - 100)
         
         // Do any additional setup after loading the view, typically from a nib.
-        if let data = dataDictionary {
-            backdropImage.setImageWithURL(NSURL(string: Utils.getFilmImageUrl(data, row: self.cellRow, qualityMode: .Hight))!)
-        }
+        backdropImage.setImageWithURL(NSURL(string: (data?.imageUrl)!)!)
+        movieTitle.text = (data?.title)!
+        movieRating.text = "Rating: \((data?.rating)!)"
+        moviePopuler.text = "Popular: \((data?.populer)!)"
         
-        movieTitle.text = Utils.getFilmTitle(dataDictionary, row: cellRow)
-        movieRating.text = "Rating: \(Utils.getFilmRating(dataDictionary, row: cellRow))"
-        moviePopuler.text = "Popular: \(Utils.getFilmPopular(dataDictionary, row: cellRow))"
-        
-        movieDescription.text = "Description:\n\n" + Utils.getFilmDescription(dataDictionary, row: cellRow)
+        movieDescription.text = "Description:\n\n" + (data?.description)!
         movieDescription.sizeToFit()
+        
+        scrollview.delegate = self
     }
     
     override func viewWillAppear(animated: Bool) {
@@ -61,5 +59,10 @@ class MovieDetailViewController: UIViewController {
     
     @IBAction func backPressed(sender: UIBarButtonItem) {
         navigationController!.popViewControllerAnimated(true)
+    }
+    
+    func scrollViewDidScroll(scrollView: UIScrollView) {
+        let offset = scrollView.contentOffset.y
+        backdropImage.frame.origin.y = -0.15 * offset
     }
 }

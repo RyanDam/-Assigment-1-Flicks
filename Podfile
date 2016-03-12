@@ -6,7 +6,6 @@ use_frameworks!
 target 'week1lab' do
 
 pod 'AFNetworking'
-pod 'EZLoadingActivity'
 pod 'SwiftLoader'
 
 end
