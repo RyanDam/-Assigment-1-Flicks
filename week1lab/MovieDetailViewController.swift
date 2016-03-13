@@ -25,8 +25,21 @@ class MovieDetailViewController: UIViewController, UIScrollViewDelegate {
         scrollview.contentSize = CGSize(width: scrollview.frame.size.width, height:
             infoView.frame.origin.y + infoView.frame.size.height - 100)
         
-        // Do any additional setup after loading the view, typically from a nib.
-        backdropImage.setImageWithURL(NSURL(string: (data?.imageUrl)!)!)
+        backdropImage.setImageWithURLRequest(NSURLRequest(URL: NSURL(string: (data?.imageUrl)!)!), placeholderImage: UIImage(), success: { (request, response, image) -> Void in
+            if response != nil {
+                self.backdropImage.alpha = 0.0
+                self.backdropImage.image = image
+                UIView.animateWithDuration(0.5, animations: { () -> Void in
+                self.backdropImage.alpha = 1.0
+                })
+            }
+            else {
+                self.backdropImage.image = image
+            }
+            }) { (request, response, err) -> Void in
+                print(err)
+        }
+        
         movieTitle.text = (data?.title)!
         movieRating.text = "Rating: \((data?.rating)!)"
         moviePopuler.text = "Popular: \((data?.populer)!)"

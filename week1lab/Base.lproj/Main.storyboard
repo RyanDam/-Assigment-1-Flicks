@@ -196,6 +196,11 @@
                                                 <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="calibratedRGB"/>
                                                 <nil key="highlightedColor"/>
                                             </label>
+                                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="toprated" id="wzI-qG-j8X">
+                                                <rect key="frame" x="14" y="66" width="19" height="19"/>
+                                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                                <color key="tintColor" red="1" green="1" blue="1" alpha="1" colorSpace="calibratedRGB"/>
+                                            </imageView>
                                         </subviews>
                                         <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="0.50860430743243246" colorSpace="calibratedRGB"/>
                                     </view>
@@ -274,6 +279,7 @@
     <resources>
         <image name="defaultCardImage" width="205" height="204"/>
         <image name="search" width="20" height="19"/>
+        <image name="toprated" width="20" height="20"/>
     </resources>
     <inferredMetricsTieBreakers>
         <segue reference="17N-xZ-3gh"/>

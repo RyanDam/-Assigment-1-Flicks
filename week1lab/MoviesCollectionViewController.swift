@@ -142,16 +142,39 @@ class MoviesCollectionViewController: UIViewController, UICollectionViewDataSour
     // The cell that is returned must be retrieved from a call to -dequeueReusableCellWithReuseIdentifier:forIndexPath:
     func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCellWithReuseIdentifier("MovieCollectionCell", forIndexPath: indexPath) as! MovieCollectionCell
+        var title = ""
+        var description = ""
+        var imageUrl = ""
+        
         if isSearching {
-            cell.titleLabel.text = fillterData[indexPath.row].title
-            cell.descriptionLabel.text = fillterData[indexPath.row].description
-            cell.thumbnailImage.setImageWithURL(NSURL(string: fillterData[indexPath.row].imageUrl)!, placeholderImage: UIImage(named: "defaultCardImage"))
+            title = fillterData[indexPath.row].title
+            description = fillterData[indexPath.row].description
+            imageUrl = fillterData[indexPath.row].imageUrl
         }
         else {
-            cell.titleLabel.text = Utils.getFilmTitle(dataDictionary, row: indexPath.row)
-            cell.descriptionLabel.text = Utils.getFilmDescription(dataDictionary, row: indexPath.row)
-            cell.thumbnailImage.setImageWithURL(NSURL(string: Utils.getFilmImageUrl(dataDictionary, row: indexPath.row, qualityMode: .Medium))!, placeholderImage: UIImage(named: "defaultCardImage"))
+            title = Utils.getFilmTitle(dataDictionary, row: indexPath.row)
+            description = Utils.getFilmDescription(dataDictionary, row: indexPath.row)
+            imageUrl = Utils.getFilmImageUrl(dataDictionary, row: indexPath.row, qualityMode: .Medium)
         }
+        
+        cell.titleLabel.text = title
+        cell.descriptionLabel.text = description
+        
+        cell.thumbnailImage.setImageWithURLRequest(NSURLRequest(URL: NSURL(string: imageUrl)!), placeholderImage: UIImage(), success: { (request, response, image) -> Void in
+            if response != nil {
+                cell.thumbnailImage.alpha = 0.0
+                cell.thumbnailImage.image = image
+                UIView.animateWithDuration(0.5, animations: { () -> Void in
+                    cell.thumbnailImage.alpha = 1.0
+                })
+            }
+            else {
+                cell.thumbnailImage.image = image
+            }
+            }) { (request, response, err) -> Void in
+                print(err)
+        }
+
         
         cell.rowIndex = indexPath.row
         cell.layer.cornerRadius = 6
@@ -161,15 +184,38 @@ class MoviesCollectionViewController: UIViewController, UICollectionViewDataSour
     
     func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCellWithIdentifier("PhotoCell", forIndexPath: indexPath) as! MovieTableCell
+        
+        var title = ""
+        var description = ""
+        var imageUrl = ""
+        
         if isSearching {
-            cell.titleLabel.text = fillterData[indexPath.row].title
-            cell.descriptionLabel.text = fillterData[indexPath.row].description
-            cell.thumbnailImage.setImageWithURL(NSURL(string: fillterData[indexPath.row].imageUrl)!, placeholderImage: UIImage(named: "defaultCardImage"))
+            title = fillterData[indexPath.row].title
+            description = fillterData[indexPath.row].description
+            imageUrl = fillterData[indexPath.row].imageUrl
         }
         else {
-            cell.titleLabel.text = Utils.getFilmTitle(dataDictionary, row: indexPath.row)
-            cell.descriptionLabel.text = Utils.getFilmDescription(dataDictionary, row: indexPath.row)
-            cell.thumbnailImage.setImageWithURL(NSURL(string: Utils.getFilmImageUrl(dataDictionary, row: indexPath.row, qualityMode: .Medium))!, placeholderImage: UIImage(named: "defaultCardImage"))
+            title = Utils.getFilmTitle(dataDictionary, row: indexPath.row)
+            description = Utils.getFilmDescription(dataDictionary, row: indexPath.row)
+            imageUrl = Utils.getFilmImageUrl(dataDictionary, row: indexPath.row, qualityMode: .Medium)
+        }
+        
+        cell.titleLabel.text = title
+        cell.descriptionLabel.text = description
+        
+        cell.thumbnailImage.setImageWithURLRequest(NSURLRequest(URL: NSURL(string: imageUrl)!), placeholderImage: UIImage(), success: { (request, response, image) -> Void in
+            if response != nil {
+                cell.thumbnailImage.alpha = 0.0
+                cell.thumbnailImage.image = image
+                UIView.animateWithDuration(0.5, animations: { () -> Void in
+                    cell.thumbnailImage.alpha = 1.0
+                })
+            }
+            else {
+                cell.thumbnailImage.image = image
+            }
+            }) { (request, response, err) -> Void in
+                print(err)
         }
         
         cell.rowIndex = indexPath.row
